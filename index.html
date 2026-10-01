@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>Gestor de Contraseñas · VaultGuard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+
+  <!-- ===== CONFIGURACIÓN INICIAL ===== -->
+  <section class="unlock-shell" id="pantallaSetup" style="display:none;">
+    <div class="unlock-card">
+      <div class="brand-lock" aria-hidden="true">
+        <div class="brand-lock-ring"></div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="10" width="14" height="10" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v2"/></svg>
+      </div>
+      <div class="eyebrow">Bóveda local cifrada</div>
+      <h1>Protege tus accesos desde el primer momento</h1>
+      <p class="unlock-copy">Crea una contraseña maestra. Tus datos se cifran antes de guardarse en este navegador.</p>
+
+      <div class="campo">
+        <label for="pass1">Contraseña maestra</label>
+        <div class="input-action">
+          <input type="password" id="pass1" placeholder="Mínimo 10 caracteres" autocomplete="new-password">
+          <button class="icon-btn" type="button" onclick="togglePasswordField('pass1', this)" aria-label="Mostrar u ocultar contraseña">👁</button>
+        </div>
+      </div>
+      <div class="campo">
+        <label for="pass2">Confirma la contraseña</label>
+        <div class="input-action">
+          <input type="password" id="pass2" placeholder="Repite la contraseña" autocomplete="new-password">
+          <button class="icon-btn" type="button" onclick="togglePasswordField('pass2', this)" aria-label="Mostrar u ocultar contraseña">👁</button>
+        </div>
+      </div>
+      <button class="btn-primary btn-wide" onclick="crearVault()">Crear mi bóveda</button>
+      <div class="hint" id="mensaje"></div>
+      <div class="security-foot"><span>●</span> AES‑256‑GCM · PBKDF2‑SHA‑256 · datos locales</div>
+    </div>
+  </section>
+
+  <!-- ===== DESBLOQUEO ===== -->
+  <section class="unlock-shell" id="pantallaDesbloqueo" style="display:none;">
+    <div class="unlock-card">
+      <div class="brand-lock" aria-hidden="true">
+        <div class="brand-lock-ring"></div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="10" width="14" height="10" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v2"/></svg>
+      </div>
+      <div class="eyebrow">VaultGuard</div>
+      <h1>Tu bóveda está bloqueada</h1>
+      <p class="unlock-copy">Ingresa tu contraseña maestra para descifrar tus datos en este dispositivo.</p>
+      <div class="campo">
+        <label for="passDesbloqueo">Contraseña maestra</label>
+        <div class="input-action">
+          <input type="password" id="passDesbloqueo" placeholder="••••••••••" autocomplete="current-password">
+          <button class="icon-btn" type="button" onclick="togglePasswordField('passDesbloqueo', this)" aria-label="Mostrar u ocultar contraseña">👁</button>
+        </div>
+      </div>
+      <button class="btn-primary btn-wide" onclick="desbloquear()">Desbloquear bóveda</button>
+      <div class="hint" id="mensajeDesbloqueo"></div>
+      <div class="security-foot"><span>●</span> El contenido solo se descifra después de desbloquear</div>
+    </div>
+  </section>
+
+  <!-- ===== APP ===== -->
+  <div class="app-shell" id="appLayout">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand-row">
+        <div class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="10" width="14" height="10" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        </div>
+        <div><div class="brand-name">VaultGuard</div><div class="brand-sub">gestor local</div></div>
+      </div>
+
+      <div class="vault-chip">
+        <div class="vault-avatar">VG</div>
+        <div class="vault-chip-copy"><strong>Bóveda personal</strong><span>Cifrada en este dispositivo</span></div>
+        <span class="online-dot" title="Bóveda desbloqueada"></span>
+      </div>
+
+      <nav class="nav-list">
+        <button class="side-item active" data-section="inicio" onclick="irASub(this,'inicio')"><span class="nav-icon">⌂</span><span>Inicio</span></button>
+        <button class="side-item" data-section="todas" onclick="irASub(this,'todas')"><span class="nav-icon">▣</span><span>Bóveda</span><span class="nav-count" id="navTotal">0</span></button>
+        <button class="side-item" data-section="favoritos" onclick="irASub(this,'favoritos')"><span class="nav-icon">★</span><span>Favoritos</span></button>
+        <button class="side-item" data-section="codigos" onclick="irASub(this,'codigos')"><span class="nav-icon">◷</span><span>Códigos 2FA</span></button>
+        <div class="side-sep"></div>
+        <button class="side-item" data-section="revision" onclick="irASub(this,'revision')"><span class="nav-icon">◇</span><span>Seguridad</span></button>
+        <button class="side-item" data-section="notas" onclick="irASub(this,'notas')"><span class="nav-icon">▤</span><span>Notas seguras</span></button>
+        <button class="side-item" data-section="papelera" onclick="irASub(this,'papelera')"><span class="nav-icon">⌫</span><span>Papelera</span><span class="nav-count" id="navTrash">0</span></button>
+        <div class="side-sep"></div>
+        <button class="side-item" data-section="config" onclick="irASub(this,'config')"><span class="nav-icon">⚙</span><span>Configuración</span></button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="lock-state"><span class="pulse-dot"></span><span>Bóveda desbloqueada</span></div>
+        <button class="btn-ghost btn-wide" onclick="bloquearApp()">Bloquear ahora</button>
+      </div>
+    </aside>
+
+    <main class="main-col">
+      <header class="mobile-topbar">
+        <button class="icon-btn" onclick="toggleSidebar()">☰</button>
+        <strong>VaultGuard</strong>
+        <button class="icon-btn" onclick="bloquearApp()">⌾</button>
+      </header>
+
+      <!-- INICIO -->
+      <section class="sub-panel active" id="sub-inicio">
+        <div class="page-head hero-head">
+          <div>
+            <div class="eyebrow">Panel de control</div>
+            <h1>Tu seguridad, de un vistazo</h1>
+            <p>Revisa el estado de la bóveda y accede rápido a las acciones más usadas.</p>
+          </div>
+          <button class="btn-primary" onclick="abrirModalNueva()">＋ Nueva credencial</button>
+        </div>
+
+        <div class="stats-grid">
+          <article class="metric-card"><div class="metric-icon steel">▣</div><div><span>Credenciales</span><strong id="dashTotal">0</strong><small>guardadas</small></div></article>
+          <article class="metric-card"><div class="metric-icon green">◇</div><div><span>Índice de seguridad</span><strong id="dashScore">100%</strong><small id="dashScoreText">Sin riesgos detectados</small></div></article>
+          <article class="metric-card"><div class="metric-icon purple">◷</div><div><span>Protección 2FA</span><strong id="dash2FA">0</strong><small>códigos TOTP</small></div></article>
+          <article class="metric-card"><div class="metric-icon gold">★</div><div><span>Favoritos</span><strong id="dashFavs">0</strong><small>accesos rápidos</small></div></article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel-card security-card">
+            <div class="card-head"><div><span class="eyebrow">Salud de la bóveda</span><h2>Revisión automática</h2></div><button class="text-btn" onclick="navegarA('revision')">Ver detalles →</button></div>
+            <div class="score-ring-wrap">
+              <div class="score-ring" id="scoreRing"><div><strong id="scoreRingValue">100</strong><span>/100</span></div></div>
+              <div class="score-copy"><h3 id="scoreTitle">Excelente</h3><p id="scoreDescription">Tus credenciales actuales no muestran problemas evidentes.</p><div class="security-pills"><span class="pill danger" id="pillWeak">0 débiles</span><span class="pill warn" id="pillRepeated">0 repetidas</span></div></div>
+            </div>
+          </article>
+
+          <article class="panel-card quick-card">
+            <div class="card-head"><div><span class="eyebrow">Acciones rápidas</span><h2>Herramientas</h2></div></div>
+            <div class="quick-grid">
+              <button onclick="abrirModalNueva()"><span>＋</span><strong>Nueva credencial</strong><small>Guardar usuario y contraseña</small></button>
+              <button onclick="abrirGeneradorRapido()"><span>✦</span><strong>Generar contraseña</strong><small>Crear una clave aleatoria</small></button>
+              <button onclick="abrirModalNota()"><span>▤</span><strong>Nota segura</strong><small>Guardar texto cifrado</small></button>
+              <button onclick="exportarBackup()"><span>⇩</span><strong>Respaldo cifrado</strong><small>Exportar tu bóveda</small></button>
+            </div>
+          </article>
+        </div>
+
+        <article class="panel-card recent-card">
+          <div class="card-head"><div><span class="eyebrow">Actividad</span><h2>Credenciales recientes</h2></div><button class="text-btn" onclick="navegarA('todas')">Abrir bóveda →</button></div>
+          <div id="listaRecientes" class="compact-list"></div>
+        </article>
+      </section>
+
+      <!-- BÓVEDA -->
+      <section class="sub-panel" id="sub-todas">
+        <div class="page-head">
+          <div><div class="eyebrow">Credenciales</div><h1>Mi bóveda</h1><p>Busca, filtra y administra tus accesos cifrados.</p></div>
+          <button class="btn-primary" onclick="abrirModalNueva()">＋ Nueva entrada</button>
+        </div>
+        <div class="toolbar">
+          <div class="search-wrap"><span>⌕</span><input id="buscador" placeholder="Buscar por sitio, usuario o categoría…" oninput="renderizarLista()"></div>
+          <select id="filtroCategoria" onchange="renderizarLista()">
+            <option value="">Todas las categorías</option>
+            <option>Trabajo</option><option>Estudios</option><option>Redes sociales</option><option>Finanzas</option><option>Compras</option><option>Entretenimiento</option><option>Otros</option>
+          </select>
+        </div>
+        <div class="list-card" id="listaEntradas"></div>
+        <div class="empty-state" id="listaVacia" style="display:none;"><div>▣</div><h3>No encontramos credenciales</h3><p>Prueba otra búsqueda o agrega una nueva entrada.</p></div>
+      </section>
+
+      <!-- FAVORITOS -->
+      <section class="sub-panel" id="sub-favoritos">
+        <div class="page-head"><div><div class="eyebrow">Accesos rápidos</div><h1>Favoritos</h1><p>Las credenciales que marcaste para tener siempre a mano.</p></div></div>
+        <div class="list-card" id="listaFavoritos"></div>
+        <div class="empty-state" id="favoritosVacio" style="display:none;"><div>★</div><h3>Aún no tienes favoritos</h3><p>Marca una credencial con la estrella y aparecerá aquí.</p></div>
+      </section>
+
+      <!-- CÓDIGOS -->
+      <section class="sub-panel" id="sub-codigos">
+        <div class="page-head"><div><div class="eyebrow">Autenticación</div><h1>Códigos de verificación</h1><p>Generador TOTP compatible con claves secretas Base32.</p></div><button class="btn-primary" onclick="abrirModalCodigo()">＋ Agregar código</button></div>
+        <div class="list-card" id="listaCodigos"></div>
+        <div class="empty-state" id="codigosVacio" style="display:none;"><div>◷</div><h3>No hay códigos 2FA</h3><p>Agrega la clave secreta de un servicio para generar códigos temporales.</p></div>
+      </section>
+
+      <!-- SEGURIDAD -->
+      <section class="sub-panel" id="sub-revision">
+        <div class="page-head"><div><div class="eyebrow">Auditoría local</div><h1>Revisión de seguridad</h1><p>Detecta contraseñas débiles y reutilizadas sin enviar datos a internet.</p></div></div>
+        <div class="stats-grid security-stats">
+          <article class="metric-card"><div class="metric-icon red">!</div><div><span>Débiles / medias</span><strong id="statDebiles">0</strong><small>por mejorar</small></div></article>
+          <article class="metric-card"><div class="metric-icon yellow">≈</div><div><span>Reutilizadas</span><strong id="statRepetidas">0</strong><small>credenciales afectadas</small></div></article>
+          <article class="metric-card"><div class="metric-icon green">✓</div><div><span>Fuertes</span><strong id="statSeguras">0</strong><small>bien protegidas</small></div></article>
+        </div>
+        <div class="list-card" id="listaRevision"></div>
+        <div class="empty-state" id="revisionVacia" style="display:none;"><div>◇</div><h3>Sin credenciales para revisar</h3><p>La auditoría aparecerá cuando agregues entradas a la bóveda.</p></div>
+      </section>
+
+      <!-- NOTAS -->
+      <section class="sub-panel" id="sub-notas">
+        <div class="page-head"><div><div class="eyebrow">Contenido cifrado</div><h1>Notas seguras</h1><p>Guarda códigos de recuperación, información privada o recordatorios sensibles.</p></div><button class="btn-primary" onclick="abrirModalNota()">＋ Nueva nota</button></div>
+        <div class="notes-grid" id="listaNotas"></div>
+        <div class="empty-state" id="notasVacio" style="display:none;"><div>▤</div><h3>No tienes notas seguras</h3><p>Crea una nota y se almacenará dentro de la misma bóveda cifrada.</p></div>
+      </section>
+
+      <!-- PAPELERA -->
+      <section class="sub-panel" id="sub-papelera">
+        <div class="page-head"><div><div class="eyebrow">Recuperación</div><h1>Papelera</h1><p>Las credenciales eliminadas pueden restaurarse antes de borrarlas definitivamente.</p></div><button class="btn-danger-soft" onclick="vaciarPapelera()">Vaciar papelera</button></div>
+        <div class="list-card" id="listaPapelera"></div>
+        <div class="empty-state" id="papeleraVacia" style="display:none;"><div>⌫</div><h3>La papelera está vacía</h3><p>Las credenciales que elimines aparecerán aquí.</p></div>
+      </section>
+
+      <!-- CONFIG -->
+      <section class="sub-panel" id="sub-config">
+        <div class="page-head"><div><div class="eyebrow">Preferencias</div><h1>Configuración</h1><p>Ajustes de seguridad, respaldo y administración de la bóveda.</p></div></div>
+        <div class="settings-grid">
+          <article class="panel-card settings-card">
+            <div class="setting-icon">⌛</div><div class="setting-copy"><h3>Bloqueo automático</h3><p>Bloquea la bóveda después de un periodo de inactividad.</p></div>
+            <select id="autoLockSelect" onchange="guardarConfiguracion()"><option value="1">1 minuto</option><option value="5">5 minutos</option><option value="15">15 minutos</option><option value="30">30 minutos</option><option value="0">Nunca</option></select>
+          </article>
+          <article class="panel-card settings-card">
+            <div class="setting-icon">◌</div><div class="setting-copy"><h3>Modo privacidad</h3><p>Oculta nombres de usuario en las listas hasta pasar el cursor.</p></div>
+            <label class="switch"><input type="checkbox" id="privacyMode" onchange="guardarConfiguracion()"><span></span></label>
+          </article>
+          <article class="panel-card settings-card block-setting">
+            <div class="setting-icon">⇩</div><div class="setting-copy"><h3>Respaldo cifrado</h3><p>Exporta exactamente la bóveda cifrada para conservar una copia segura.</p></div>
+            <div class="setting-actions"><button class="btn-secondary" onclick="exportarBackup()">Exportar</button><button class="btn-secondary" onclick="document.getElementById('backupFile').click()">Importar</button><input type="file" id="backupFile" accept="application/json,.json" hidden onchange="importarBackup(event)"></div>
+          </article>
+          <article class="panel-card settings-card block-setting">
+            <div class="setting-icon">◆</div><div class="setting-copy"><h3>Cambiar contraseña maestra</h3><p>Genera una nueva clave de cifrado para toda la bóveda.</p></div>
+            <button class="btn-secondary" onclick="abrirModalMaster()">Cambiar contraseña</button>
+          </article>
+        </div>
+        <div class="security-note"><strong>Importante:</strong> este prototipo funciona de forma local en el navegador. No reemplaza todavía a un gestor de contraseñas auditado para uso crítico o empresarial.</div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ===== MODAL CREDENCIAL ===== -->
+  <div class="overlay" id="overlayModal" role="dialog" aria-modal="true">
+    <div class="modal-card modal-large">
+      <div class="modal-head"><div><div class="eyebrow">Credencial</div><h2 id="modalTitulo">Nueva entrada</h2></div><button class="icon-btn" onclick="cerrarModal()">✕</button></div>
+      <input type="hidden" id="entradaId">
+      <div class="form-grid two">
+        <div class="campo"><label for="fSitio">Nombre del servicio</label><input type="text" id="fSitio" placeholder="Ej: GitHub"></div>
+        <div class="campo"><label for="fCategoria">Categoría</label><select id="fCategoria"><option>Trabajo</option><option>Estudios</option><option>Redes sociales</option><option>Finanzas</option><option>Compras</option><option>Entretenimiento</option><option selected>Otros</option></select></div>
+      </div>
+      <div class="campo"><label for="fUrl">Sitio web (opcional)</label><input type="url" id="fUrl" placeholder="https://github.com"></div>
+      <div class="campo"><label for="fUsuario">Usuario o correo</label><input type="text" id="fUsuario" placeholder="usuario@correo.com" autocomplete="off"></div>
+      <div class="campo">
+        <label for="fContraseña">Contraseña</label>
+        <div class="gen-row"><input type="password" id="fContraseña" class="mono" placeholder="Contraseña de esta cuenta" oninput="actualizarFortaleza()"><button type="button" class="icon-btn field-btn" onclick="togglePasswordField('fContraseña', this)">👁</button><button type="button" class="icon-btn field-btn accent" onclick="toggleOpcionesGen()">✦</button></div>
+        <div class="fortaleza"><div class="barra-fondo"><div class="barra-fill" id="barraFortaleza"></div></div><div class="fortaleza-meta"><span id="labelFortaleza">Sin evaluar</span><span id="entropiaLabel"></span></div></div>
+        <div class="opciones-gen" id="opcionesGen" style="display:none;">
+          <div class="generator-top"><strong>Generador seguro</strong><span><span id="valorLargo">18</span> caracteres</span></div>
+          <input class="range" type="range" id="largoGen" min="10" max="40" value="18" oninput="document.getElementById('valorLargo').textContent=this.value">
+          <div class="checks-gen"><label><input type="checkbox" id="chkMayus" checked> Mayúsculas</label><label><input type="checkbox" id="chkNum" checked> Números</label><label><input type="checkbox" id="chkSim" checked> Símbolos</label></div>
+          <button type="button" class="btn-secondary btn-wide" onclick="generarYRellenar()">Generar y usar contraseña</button>
+        </div>
+      </div>
+      <div class="campo"><label for="fNotas">Notas (opcional)</label><textarea id="fNotas" rows="3" placeholder="Información adicional cifrada junto con la credencial"></textarea></div>
+      <label class="favorite-check"><input type="checkbox" id="fFavorito"><span>★</span> Marcar como favorita</label>
+      <div class="modal-actions"><button class="btn-secondary" onclick="cerrarModal()">Cancelar</button><button class="btn-primary" onclick="guardarEntrada()">Guardar credencial</button></div>
+      <button class="btn-danger-text" id="btnEliminarEntrada" onclick="eliminarEntradaActual()" style="display:none;">Mover a la papelera</button>
+    </div>
+  </div>
+
+  <!-- ===== MODAL 2FA ===== -->
+  <div class="overlay" id="overlayCodigo" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-head"><div><div class="eyebrow">TOTP</div><h2>Nuevo código 2FA</h2></div><button class="icon-btn" onclick="cerrarModalCodigo()">✕</button></div>
+      <div class="campo"><label for="cNombre">Servicio</label><input type="text" id="cNombre" placeholder="Ej: GitHub, Google…"></div>
+      <div class="campo"><label for="cSecreto">Clave secreta Base32</label><input type="text" id="cSecreto" class="mono" placeholder="JBSWY3DPEHPK3PXP"><div class="hint">Usa la clave secreta textual que entrega el servicio al configurar autenticación en dos pasos.</div></div>
+      <div class="modal-actions"><button class="btn-secondary" onclick="cerrarModalCodigo()">Cancelar</button><button class="btn-primary" onclick="guardarCodigo()">Agregar código</button></div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL NOTA ===== -->
+  <div class="overlay" id="overlayNota" role="dialog" aria-modal="true">
+    <div class="modal-card modal-large">
+      <div class="modal-head"><div><div class="eyebrow">Nota cifrada</div><h2 id="notaModalTitulo">Nueva nota segura</h2></div><button class="icon-btn" onclick="cerrarModalNota()">✕</button></div>
+      <input type="hidden" id="notaId">
+      <div class="campo"><label for="notaTitulo">Título</label><input id="notaTitulo" type="text" placeholder="Ej: Códigos de recuperación"></div>
+      <div class="campo"><label for="notaContenido">Contenido</label><textarea id="notaContenido" rows="9" placeholder="Escribe aquí información que quieras mantener cifrada…"></textarea></div>
+      <div class="modal-actions"><button class="btn-secondary" onclick="cerrarModalNota()">Cancelar</button><button class="btn-primary" onclick="guardarNota()">Guardar nota</button></div>
+      <button class="btn-danger-text" id="btnEliminarNota" onclick="eliminarNotaActual()" style="display:none;">Eliminar nota definitivamente</button>
+    </div>
+  </div>
+
+  <!-- ===== MODAL CONTRASEÑA MAESTRA ===== -->
+  <div class="overlay" id="overlayMaster" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-head"><div><div class="eyebrow">Seguridad</div><h2>Cambiar contraseña maestra</h2></div><button class="icon-btn" onclick="cerrarModalMaster()">✕</button></div>
+      <div class="campo"><label for="masterActual">Contraseña actual</label><input type="password" id="masterActual" autocomplete="current-password"></div>
+      <div class="campo"><label for="masterNueva">Nueva contraseña</label><input type="password" id="masterNueva" autocomplete="new-password" placeholder="Mínimo 10 caracteres"></div>
+      <div class="campo"><label for="masterNueva2">Confirmar nueva contraseña</label><input type="password" id="masterNueva2" autocomplete="new-password"></div>
+      <div class="hint" id="masterMensaje"></div>
+      <div class="modal-actions"><button class="btn-secondary" onclick="cerrarModalMaster()">Cancelar</button><button class="btn-primary" onclick="cambiarMaster()">Actualizar clave</button></div>
+    </div>
+  </div>
+
+  <!-- ===== GENERADOR RÁPIDO ===== -->
+  <div class="overlay" id="overlayGenerador" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-head"><div><div class="eyebrow">Herramienta</div><h2>Generador rápido</h2></div><button class="icon-btn" onclick="cerrarGeneradorRapido()">✕</button></div>
+      <div class="generated-box"><span id="quickGenerated" class="mono"></span><button class="icon-btn" onclick="copiarTexto(document.getElementById('quickGenerated').textContent,'Contraseña copiada')">⧉</button></div>
+      <div class="generator-top"><strong>Longitud</strong><span><span id="quickLengthValue">20</span> caracteres</span></div>
+      <input class="range" type="range" id="quickLength" min="10" max="40" value="20" oninput="document.getElementById('quickLengthValue').textContent=this.value;regenerarQuick()">
+      <div class="modal-actions"><button class="btn-secondary" onclick="regenerarQuick()">Regenerar</button><button class="btn-primary" onclick="copiarTexto(document.getElementById('quickGenerated').textContent,'Contraseña copiada')">Copiar</button></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlayBackup" role="dialog" aria-modal="true" aria-labelledby="backupTitulo">
+    <div class="modal-card">
+      <div class="modal-head"><h2 id="backupTitulo">Verificar respaldo</h2><button class="icon-btn" onclick="cerrarOverlay('overlayBackup')" aria-label="Cerrar">✕</button></div>
+      <p>Verifica la contraseña del respaldo antes de reemplazar tu bóveda. Puedes exportar una copia de la actual antes de continuar.</p>
+      <div class="campo"><label for="backupPassword">Contraseña maestra del respaldo</label><input type="password" id="backupPassword" autocomplete="off"></div>
+      <div class="hint" id="backupMensaje" aria-live="polite"></div>
+      <div class="modal-actions"><button class="btn-secondary" onclick="exportarBackup()">Respaldar actual</button><button class="btn-primary" onclick="confirmarImportacion()">Verificar e importar</button></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastIcon">✓</span><span id="toastText">Listo</span></div>
+
+  <script src="crypto.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
